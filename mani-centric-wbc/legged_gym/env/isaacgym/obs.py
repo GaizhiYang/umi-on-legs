@@ -21,6 +21,33 @@ class EnvObservationAttribute(ObservationAttribute):
 
 
 @pydantic.dataclasses.dataclass(config=Config)
+class DofSubsetObservationAttribute(EnvObservationAttribute):
+    """Observe only selected DOFs, useful for excluding continuous wheel angles."""
+
+    indices: List[int]
+
+    def __call__(self, struct: Any, generator: torch.Generator) -> torch.Tensor:
+        value = getattr(struct, self.key)[:, self.indices]
+        if self.scale is not None:
+            value = value * self.scale
+        if self.noise_std is not None and self.noise_std > 0:
+            value = value + torch.randn(
+                value.shape,
+                generator=generator,
+                dtype=value.dtype,
+                device=value.device,
+            ) * self.noise_std
+        if self.offset is not None:
+            offset = self.offset
+            if offset.shape[-1] != len(self.indices):
+                offset = offset[..., self.indices]
+            value = value - offset
+        if self.clip is not None:
+            value = torch.clip(value, -self.clip, self.clip)
+        return value
+
+
+@pydantic.dataclasses.dataclass(config=Config)
 class FeetContactAttribute(EnvObservationAttribute):
     feet_sensor_indices: List[int]
     force_threshold: float

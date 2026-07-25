@@ -144,6 +144,36 @@ class PositionController(PDController):
         return super().compute_torque(torques, state)
 
 
+class PositionVelocityController(PDController):
+    """Position control for regular joints and velocity control for selected DOFs."""
+
+    def __init__(self, velocity_indices: List[int], **kwargs):
+        super().__init__(**kwargs)
+        self.velocity_indices = torch.tensor(
+            velocity_indices, dtype=torch.long, device=self.device
+        )
+
+    def compute_torque(
+        self,
+        normalized_action: torch.Tensor,
+        state: EnvState,
+    ):
+        curr_pos = state.dof_pos
+        curr_vel = state.dof_vel
+        assert normalized_action.shape == curr_pos.shape
+        assert curr_vel.shape == curr_pos.shape
+        if normalized_action.shape[0] != self.kp.shape[0]:
+            self.kp = self.kp.repeat(normalized_action.shape[0], 1)
+            self.kd = self.kd.repeat(normalized_action.shape[0], 1)
+
+        torques = self.kp * (normalized_action - curr_pos) - self.kd * curr_vel
+        torques[:, self.velocity_indices] = self.kp[:, self.velocity_indices] * (
+            normalized_action[:, self.velocity_indices]
+            - curr_vel[:, self.velocity_indices]
+        )
+        return super().compute_torque(torques, state)
+
+
 class PositionControllerWithExtraFixedAction(PositionController):
     def __init__(self, extra_action: torch.Tensor, **kwargs):
         super().__init__(**kwargs)

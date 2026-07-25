@@ -1,0 +1,379 @@
+defaults:
+  - env_base
+  - obs@state_obs: quadruped_state
+  - obs@privileged_state_obs: quadruped_privileged_state
+  - obs@privileged_setup_obs: quadruped_privileged_setup
+  - _self_
+
+ctrl_delay:
+  _convert_: all
+  _target_: torch.tensor
+  data:
+    # D1 wheel-legged base
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    # ARX5 arm
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+    - 0.020
+  device: ${..sim_device}
+
+constraints:
+  feet_drag:
+    # Rigid-body order after collapsing fixed joints in d1_arx5.urdf.
+    feet_rigid_body_indices:
+      - 5
+      - 10
+      - 15
+      - 20
+  torque:
+    violation_torque: 5.0
+  collision:
+    link_names:
+      - FL_hip
+      - FL_thigh
+      - FL_calf
+      - FR_hip
+      - FR_thigh
+      - FR_calf
+      - RL_hip
+      - RL_thigh
+      - RL_calf
+      - RR_hip
+      - RR_thigh
+      - RR_calf
+      - link1
+      - link2
+      - link3
+      - link4
+      - link5
+  joint_limit:
+    joint_names:
+      - FL_hip_joint
+      - FL_thigh_joint
+      - FL_calf_joint
+      - FR_hip_joint
+      - FR_thigh_joint
+      - FR_calf_joint
+      - RL_hip_joint
+      - RL_thigh_joint
+      - RL_calf_joint
+      - RR_hip_joint
+      - RR_thigh_joint
+      - RR_calf_joint
+      - joint1
+      - joint2
+      - joint3
+      - joint4
+      - joint5
+      - joint6
+    lower:
+      data:
+        # Front left
+        - -0.7854
+        - -1.8326
+        - -2.72
+        # Front right
+        - -0.7854
+        - -1.8326
+        - -2.72
+        # Rear left
+        - -0.7854
+        - -1.8326
+        - -2.72
+        # Rear right
+        - -0.7854
+        - -1.8326
+        - -2.72
+        # ARX5
+        - -3.141592653589793
+        - 0.0
+        - 0.0
+        - -1.57079632679
+        - -1.57079632679
+        - -1.57079632679
+    upper:
+      data:
+        # Front left
+        - 0.7854
+        - 3.4034
+        - -0.85
+        # Front right
+        - 0.7854
+        - 3.4034
+        - -0.85
+        # Rear left
+        - 0.7854
+        - 3.4034
+        - -0.85
+        # Rear right
+        - 0.7854
+        - 3.4034
+        - -0.85
+        # ARX5
+        - 3.141592653589793
+        - 3.66519
+        - 3.141592653589793
+        - 1.57079632679
+        - 1.57079632679
+        - 1.57079632679
+  close_to_default:
+    default_config:
+      _target_: torch.tensor
+      data: ${....controller.offset.data}
+      device: ${....sim_device}
+
+controller:
+  _target_: legged_gym.env.isaacgym.control.PositionVelocityController
+  velocity_indices:
+    - 3
+    - 7
+    - 11
+    - 15
+  scale:
+    data:
+      # D1: hip, thigh, calf, wheel
+      - 0.125
+      - 0.25
+      - 0.25
+      - 5.0
+      - 0.125
+      - 0.25
+      - 0.25
+      - 5.0
+      - 0.125
+      - 0.25
+      - 0.25
+      - 5.0
+      - 0.125
+      - 0.25
+      - 0.25
+      - 5.0
+      # ARX5
+      - 0.25
+      - 0.25
+      - 0.25
+      - 0.25
+      - 0.25
+      - 0.25
+  kp:
+    data:
+      - 60.0
+      - 60.0
+      - 60.0
+      - 2.0
+      - 60.0
+      - 60.0
+      - 60.0
+      - 2.0
+      - 60.0
+      - 60.0
+      - 60.0
+      - 2.0
+      - 60.0
+      - 60.0
+      - 60.0
+      - 2.0
+      - 100.0
+      - 100.0
+      - 100.0
+      - 20.0
+      - 20.0
+      - 5.0
+  kd:
+    data:
+      - 3.0
+      - 3.0
+      - 3.0
+      - 0.0
+      - 3.0
+      - 3.0
+      - 3.0
+      - 0.0
+      - 3.0
+      - 3.0
+      - 3.0
+      - 0.0
+      - 3.0
+      - 3.0
+      - 3.0
+      - 0.0
+      - 3.0
+      - 3.0
+      - 3.0
+      - 2.0
+      - 1.0
+      - 0.5
+  offset:
+    data:
+      # Front left
+      - 0.0
+      - 0.8
+      - -1.6
+      - 0.0
+      # Front right
+      - 0.0
+      - 0.8
+      - -1.6
+      - 0.0
+      # Rear left
+      - 0.0
+      - 1.0
+      - -1.6
+      - 0.0
+      # Rear right
+      - 0.0
+      - 1.0
+      - -1.6
+      - 0.0
+      # ARX5
+      - 0.0
+      - 0.3
+      - 0.5
+      - 0.0
+      - 0.0
+      - 0.0
+  torque_limit:
+    data:
+      - 80.0
+      - 80.0
+      - 80.0
+      - 12.0
+      - 80.0
+      - 80.0
+      - 80.0
+      - 12.0
+      - 80.0
+      - 80.0
+      - 80.0
+      - 12.0
+      - 80.0
+      - 80.0
+      - 80.0
+      - 12.0
+      # ARX5 limits retained from env_go2ARX5.yaml.
+      - 20.0
+      - 20.0
+      - 15.0
+      - 7.0
+      - 5.0
+      - 5.0
+
+# Wheel angles are continuous and have no useful absolute reference. Keep wheel
+# velocities in the observation, but exclude wheel positions from actor/critic.
+state_obs:
+  dof_pos:
+    _target_: legged_gym.env.isaacgym.obs.DofSubsetObservationAttribute
+    key: dof_pos
+    dim: 18
+    indices:
+      - 0
+      - 1
+      - 2
+      - 4
+      - 5
+      - 6
+      - 8
+      - 9
+      - 10
+      - 12
+      - 13
+      - 14
+      - 16
+      - 17
+      - 18
+      - 19
+      - 20
+      - 21
+    scale: 1.0
+    noise_std: ${eval:"0.01 if ${use_noise} else None"}
+    clip: 100.0
+    offset: ${...controller.offset}
+
+privileged_state_obs:
+  dof_pos:
+    _target_: legged_gym.env.isaacgym.obs.DofSubsetObservationAttribute
+    key: dof_pos
+    dim: 18
+    indices:
+      - 0
+      - 1
+      - 2
+      - 4
+      - 5
+      - 6
+      - 8
+      - 9
+      - 10
+      - 12
+      - 13
+      - 14
+      - 16
+      - 17
+      - 18
+      - 19
+      - 20
+      - 21
+    scale: 1.0
+    noise_std: null
+    clip: 100.0
+    offset: ${...controller.offset}
+
+cfg:
+  env:
+    num_actions: 22
+    num_observations: ???
+
+  init_state:
+    pos:
+      - -0.5
+      - 0.0
+      - 0.48
+
+  asset:
+    name: d1ARX5
+    file: "{LEGGED_GYM_ROOT_DIR}/resources/robots/go2_arx5/d1_arx5.urdf"
+    terminate_after_contacts_on:
+      - base_link
+      - face_link
+      - locking_link
+      - hip
+      - link1
+      - link2
+      - link3
+      - link4
+      - link5
+    self_collisions: 0
+    collapse_fixed_joints: true
+    flip_visual_attachments: true
+    force_sensor_links:
+      - FL_foot
+      - FR_foot
+      - RL_foot
+      - RR_foot
+
+  domain_rand:
+    randomize_rigid_body_masses:
+      - base_link
+    added_mass_range:
+      - -2.0
+      - 2.0
+    randomize_rigid_body_com:
+      - base_link

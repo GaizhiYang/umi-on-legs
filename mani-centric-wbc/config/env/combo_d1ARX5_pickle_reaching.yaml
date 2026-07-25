@@ -1,0 +1,12 @@
+defaults:
+  - combo_d1ARX5_reaching
+  - tasks/sequence_sampler@tasks.reaching.sequence_sampler: pickle_pose_loader
+  - _self_
+
+tasks:
+  reaching:
+    sequence_sampler:
+      # D1's nominal root is 0.18 m higher than Go2's (0.48 m vs 0.30 m).
+      add_random_height_range:
+        - 0.18
+        - 0.18
