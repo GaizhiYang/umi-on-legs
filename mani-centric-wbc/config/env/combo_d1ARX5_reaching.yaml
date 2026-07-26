@@ -107,24 +107,28 @@ constraints:
     link_1: FR_thigh
     link_2: FR_foot
     planar: true
+    target_distance: 0.15
     penalty_weight: -1.0
     distance_sigma: 0.5
   fl_feet_under_hips:
     link_1: FL_thigh
     link_2: FL_foot
     planar: true
+    target_distance: ${env.constraints.fr_feet_under_hips.target_distance}
     penalty_weight: ${env.constraints.fr_feet_under_hips.penalty_weight}
     distance_sigma: ${env.constraints.fr_feet_under_hips.distance_sigma}
   rr_feet_under_hips:
     link_1: RR_thigh
     link_2: RR_foot
     planar: true
+    target_distance: ${env.constraints.fr_feet_under_hips.target_distance}
     penalty_weight: ${env.constraints.fr_feet_under_hips.penalty_weight}
     distance_sigma: ${env.constraints.fr_feet_under_hips.distance_sigma}
   rl_feet_under_hips:
     link_1: RL_thigh
     link_2: RL_foot
     planar: true
+    target_distance: ${env.constraints.fr_feet_under_hips.target_distance}
     penalty_weight: ${env.constraints.fr_feet_under_hips.penalty_weight}
     distance_sigma: ${env.constraints.fr_feet_under_hips.distance_sigma}
   action_rate:
