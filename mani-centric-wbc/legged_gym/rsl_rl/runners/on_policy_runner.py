@@ -159,13 +159,14 @@ class OnPolicyRunner:
                 ).items()
             }
         )
-        frames = np.stack(vis_frames)  # (num_frames, height, width, 3)
-        # wandb requires (num_frames, height, width, 3) -> (num_frames, 3, height, width)
-        stats["eval/vis"] = wandb.Video(
-            frames.transpose(0, 3, 1, 2),
-            fps=int(1 / self.env.gym_dt),
-            format="mp4",
-        )
+        if vis_frames:
+            frames = np.stack(vis_frames)  # (num_frames, height, width, 3)
+            # wandb requires (num_frames, height, width, 3) -> (num_frames, 3, height, width)
+            stats["eval/vis"] = wandb.Video(
+                frames.transpose(0, 3, 1, 2),
+                fps=int(1 / self.env.gym_dt),
+                format="mp4",
+            )
         vis_frames.clear()
         self.alg.storage = self.train_storage
         self.env.cfg.domain_rand.push_robots = should_push_robots
