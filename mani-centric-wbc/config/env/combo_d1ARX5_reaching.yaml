@@ -82,7 +82,7 @@ constraints:
       - joint1
       - joint5
   root_height:
-    target_height: 0.48
+    target_height: 0.45
   foot_contact_force:
     feet_sensor_indices:
       - 0

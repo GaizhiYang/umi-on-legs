@@ -46,17 +46,18 @@ def play():
     parser.add_argument("--trajectory_file_path", type=str, required=True)
     parser.add_argument("--num_envs", type=int, default=1)
     parser.add_argument("--num_steps", type=int, default=1000)
+    parser.add_argument("--episode_length_s", type=float, default=None)
+    parser.add_argument("--max_gpu_contact_pairs", type=int, default=1048576)
+    parser.add_argument("--physx_buffer_size_multiplier", type=int, default=2)
     args = parser.parse_args()
-    if args.visualize:
-        args.num_envs = 1
+    if args.num_envs <= 0:
+        parser.error("--num_envs must be greater than zero")
 
     config = OmegaConf.create(
         pickle.load(
             open(os.path.join(os.path.dirname(args.ckpt_path), "config.pkl"), "rb")
         )
     )
-    sim_params = gymapi.SimParams()
-    gymutil.parse_sim_config(config.env.cfg.sim, sim_params)
     config = recursively_replace_device(
         OmegaConf.to_container(
             config,
@@ -74,8 +75,23 @@ def play():
     config["env"]["controller"]["num_envs"] = args.num_envs  # type: ignore
     config["env"]["cfg"]["env"]["num_envs"] = args.num_envs  # type: ignore
     config["env"]["controller"]["num_envs"] = args.num_envs  # type: ignore
+    if args.episode_length_s is not None:
+        if args.episode_length_s <= 0:
+            parser.error("--episode_length_s must be greater than zero")
+        config["env"]["cfg"]["env"]["episode_length_s"] = args.episode_length_s
+        config["env"]["tasks"]["reaching"]["sequence_sampler"][
+            "episode_length_s"
+        ] = args.episode_length_s
     config["env"]["cfg"]["domain_rand"]["push_robots"] = False  # type: ignore
     config["env"]["cfg"]["domain_rand"]["transport_robots"] = False  # type: ignore
+
+    # Training configs may reserve PhysX buffers for thousands of environments.
+    # Use playback-sized buffers unless explicitly overridden on the command line.
+    physx_config = config["env"]["cfg"]["sim"]["physx"]
+    physx_config["max_gpu_contact_pairs"] = args.max_gpu_contact_pairs
+    physx_config["default_buffer_size_multiplier"] = (
+        args.physx_buffer_size_multiplier
+    )
 
     # reset episode before commands change
     config["env"]["cfg"]["terrain"]["mode"] = "plane"
@@ -88,6 +104,9 @@ def play():
     ] = args.trajectory_file_path
 
     config["env"]["constraints"] = {}
+
+    sim_params = gymapi.SimParams()
+    gymutil.parse_sim_config(config["env"]["cfg"]["sim"], sim_params)
 
     setup(config, seed=config["seed"])  # type: ignore
 
@@ -105,8 +124,20 @@ def play():
 
     def update_cam_pos():
         cam_rotating_frequency: float = 0.025
-        offset = np.array([0.8, 0.3, 0.3]) * 1.5
-        target_position = env.state.root_pos[actor_idx, :]
+        if args.num_envs == 1:
+            offset = np.array([0.8, 0.3, 0.3]) * 1.5
+            target_position = env.state.root_pos[actor_idx, :]
+        else:
+            root_positions = env.state.root_pos
+            target_position = root_positions.mean(dim=0)
+            planar_span = (
+                root_positions[:, :2].max(dim=0).values
+                - root_positions[:, :2].min(dim=0).values
+            )
+            camera_distance = max(3.0, planar_span.norm().item() * 0.9)
+            offset = np.array(
+                [camera_distance, camera_distance * 0.7, camera_distance * 0.6]
+            )
         # rotate camera around target's z axis
         angle = np.sin(2 * np.pi * env.gym_dt * cam_rotating_frequency * count)
         target_transform = affines.compose(
