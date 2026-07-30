@@ -17,6 +17,50 @@ from legged_gym.env.isaacgym.state import EnvState
 from legged_gym.env.isaacgym.utils import torch_rand_float
 
 
+class ThickAxesGeometry(gymutil.LineGeometry):
+    """RGB coordinate axes rendered as bundles of parallel viewer lines."""
+
+    def __init__(
+        self, scale: float = 1.0, thickness: float = 0.008, lines_per_side: int = 3
+    ):
+        offsets = np.linspace(
+            -thickness / 2, thickness / 2, lines_per_side, dtype=np.float32
+        )
+        axes = (
+            ((1.0, 0.0, 0.0), (1.0, 0.0, 0.0)),
+            ((0.0, 1.0, 0.0), (0.0, 1.0, 0.0)),
+            ((0.0, 0.0, 1.0), (0.0, 0.0, 1.0)),
+        )
+        num_lines = len(axes) * lines_per_side**2
+        self.verts = np.empty((num_lines, 2), dtype=gymapi.Vec3.dtype)
+        self._colors = np.empty(num_lines, dtype=gymapi.Vec3.dtype)
+
+        line_idx = 0
+        for axis_idx, (direction, color) in enumerate(axes):
+            perpendicular_axes = [idx for idx in range(3) if idx != axis_idx]
+            for first_offset in offsets:
+                for second_offset in offsets:
+                    start = [0.0, 0.0, 0.0]
+                    start[perpendicular_axes[0]] = first_offset
+                    start[perpendicular_axes[1]] = second_offset
+                    end = [
+                        start[idx] + scale * direction[idx] for idx in range(3)
+                    ]
+                    self.verts[line_idx][0] = tuple(start)
+                    self.verts[line_idx][1] = tuple(end)
+                    self._colors[line_idx] = color
+                    line_idx += 1
+
+    def vertices(self) -> np.ndarray:
+        return self.verts
+
+    def colors(self) -> np.ndarray:
+        return self._colors
+
+
+POSE_AXES_GEOMETRY = ThickAxesGeometry(scale=0.2)
+
+
 def check_should_reset(
     time_s: torch.Tensor,
     dt: float,
@@ -911,7 +955,7 @@ class ReachingLinkTask(Task):
                 r=gymapi.Quat(*target_quats[i].tolist()),
             )
             gymutil.draw_lines(
-                gymutil.AxesGeometry(scale=0.2),
+                POSE_AXES_GEOMETRY,
                 self.gym,
                 viewer,
                 env,
@@ -922,7 +966,7 @@ class ReachingLinkTask(Task):
                 r=gymapi.Quat(*curr_quats[i].copy().tolist()),
             )
             gymutil.draw_lines(
-                gymutil.AxesGeometry(scale=0.2),
+                POSE_AXES_GEOMETRY,
                 self.gym,
                 viewer,
                 env,
