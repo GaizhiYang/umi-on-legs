@@ -41,6 +41,7 @@ def play():
     parser = ArgumentParser()
     parser.add_argument("--ckpt_path", type=str)
     parser.add_argument("--visualize", action="store_true")
+    parser.add_argument("--follow_camera", action="store_true")
     parser.add_argument("--record_video", action="store_true")
     parser.add_argument("--device", type=str, default="cuda:0")
     parser.add_argument("--trajectory_file_path", type=str, required=True)
@@ -168,6 +169,7 @@ def play():
     obs, privileged_obs = env.reset()
 
     if args.visualize:
+        update_cam_pos()
         env.render()  # render once to initialize viewer
 
     if args.num_steps == -1:
@@ -175,7 +177,8 @@ def play():
             while True:
                 actions = policy(obs)
                 obs = env.step(actions)[0]
-                update_cam_pos()
+                if args.follow_camera:
+                    update_cam_pos()
                 env.render()
 
     state_logs = {
@@ -211,7 +214,8 @@ def play():
             if env.state.time * 24 < count:
                 return
             if args.visualize:
-                update_cam_pos()
+                if args.follow_camera:
+                    update_cam_pos()
                 env.visualize(vis_env_ids=[0])
                 env.render()
                 count += 1
